@@ -61,6 +61,18 @@ export type SqlQuery = {
   sql: string
   args: Array<unknown>
   argTypes: Array<ArgType>
+  /**
+   * Expected output column types for this query, when known from the Prisma schema.
+   *
+   * Adapters can use these hints to correctly convert result values, especially
+   * when the database storage type differs from the Prisma field type (e.g., DateTime
+   * stored as INTEGER for unixepoch-ms format).
+   *
+   * - Each element corresponds to an expected output column in order
+   * - `null` indicates the type is unknown/dynamic and should be inferred by the adapter
+   * - When `undefined`, adapters should use their existing inference logic
+   */
+  columnTypes?: Array<ColumnType | null>
 }
 
 export type Error = MappedError & { originalCode?: string; originalMessage?: string }

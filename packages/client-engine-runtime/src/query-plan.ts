@@ -1,4 +1,4 @@
-import { ArgType, Arity } from '@prisma/driver-adapter-utils'
+import { ArgType, Arity, ColumnType } from '@prisma/driver-adapter-utils'
 
 export type PrismaValuePlaceholder = { prisma__type: 'param'; prisma__value: { name: string; type: string } }
 
@@ -52,6 +52,11 @@ export type QueryPlanDbQuery =
       sql: string
       args: PrismaValue[]
       argTypes: ArgType[]
+      /**
+       * Expected output column types for this query, when known from the Prisma schema.
+       * Provided by the query compiler to help adapters correctly convert result values.
+       */
+      columnTypes?: Array<ColumnType | null>
     }
   | {
       type: 'templateSql'
@@ -60,6 +65,11 @@ export type QueryPlanDbQuery =
       args: PrismaValue[]
       argTypes: DynamicArgType[]
       chunkable: boolean
+      /**
+       * Expected output column types for this query, when known from the Prisma schema.
+       * Provided by the query compiler to help adapters correctly convert result values.
+       */
+      columnTypes?: Array<ColumnType | null>
     }
 
 export type DynamicArgType = ArgType | { arity: 'tuple'; elements: ArgType[] }

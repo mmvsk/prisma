@@ -1,4 +1,4 @@
-import { ArgType, SqlQuery } from '@prisma/driver-adapter-utils'
+import { ArgType, ColumnType, SqlQuery } from '@prisma/driver-adapter-utils'
 
 import {
   DynamicArgType,
@@ -25,7 +25,7 @@ export function renderQuery(
 
   switch (dbQuery.type) {
     case 'rawSql':
-      return [renderRawSql(dbQuery.sql, args, dbQuery.argTypes)]
+      return [renderRawSql(dbQuery.sql, args, dbQuery.argTypes, dbQuery.columnTypes)]
     case 'templateSql': {
       const chunks = dbQuery.chunkable ? chunkParams(dbQuery.fragments, args, maxChunkSize) : [args]
       return chunks.map((params) => {
@@ -33,7 +33,13 @@ export function renderQuery(
           throw new UserFacingError('The query parameter limit supported by your database is exceeded.', 'P2029')
         }
 
-        return renderTemplateSql(dbQuery.fragments, dbQuery.placeholderFormat, params, dbQuery.argTypes)
+        return renderTemplateSql(
+          dbQuery.fragments,
+          dbQuery.placeholderFormat,
+          params,
+          dbQuery.argTypes,
+          dbQuery.columnTypes,
+        )
       })
     }
     default:
@@ -73,6 +79,7 @@ function renderTemplateSql(
   placeholderFormat: PlaceholderFormat,
   params: unknown[],
   argTypes: DynamicArgType[],
+  columnTypes?: Array<ColumnType | null>,
 ): SqlQuery {
   let sql = ''
   const ctx = { placeholderNumber: 1 }
@@ -105,11 +112,17 @@ function renderTemplateSql(
     }
   }
 
-  return {
+  const result: SqlQuery = {
     sql,
     args: flattenedParams,
     argTypes: flattenedArgTypes,
   }
+
+  if (columnTypes !== undefined) {
+    result.columnTypes = columnTypes
+  }
+
+  return result
 }
 
 function renderFragment<Type extends DynamicArgType | undefined>(
@@ -153,12 +166,23 @@ function formatPlaceholder(placeholderFormat: PlaceholderFormat, placeholderNumb
   return placeholderFormat.hasNumbering ? `${placeholderFormat.prefix}${placeholderNumber}` : placeholderFormat.prefix
 }
 
-function renderRawSql(sql: string, args: unknown[], argTypes: ArgType[]): SqlQuery {
-  return {
+function renderRawSql(
+  sql: string,
+  args: unknown[],
+  argTypes: ArgType[],
+  columnTypes?: Array<ColumnType | null>,
+): SqlQuery {
+  const result: SqlQuery = {
     sql,
     args: args,
     argTypes,
   }
+
+  if (columnTypes !== undefined) {
+    result.columnTypes = columnTypes
+  }
+
+  return result
 }
 
 function doesRequireEvaluation(param: unknown): param is PrismaValuePlaceholder | PrismaValueGenerator {
